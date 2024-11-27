@@ -322,8 +322,9 @@ def create_whitelist_dialog(page: ft.Page, whitelist_manager, analyzer):
 
     # Containers para as listas
     process_list = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
+        scroll=ft.ScrollMode.ALWAYS,
         spacing=0,
+        height=180,
     )
     
     running_processes_list = ft.Column(
@@ -373,7 +374,7 @@ def create_whitelist_dialog(page: ft.Page, whitelist_manager, analyzer):
         margin=ft.margin.only(bottom=10)  # Reduzido o margin
     )
 
-    # Seção de whitelist com altura dinâmica
+    # Seção de whitelist com altura dinâmica e scroll
     whitelist_section = ft.Container(
         content=ft.Column([
             ft.Row([
@@ -383,13 +384,15 @@ def create_whitelist_dialog(page: ft.Page, whitelist_manager, analyzer):
             ft.Container(
                 content=process_list,
                 padding=5,
+                height=200,
+                border=ft.border.all(1, ft.colors.GREEN_50),
+                border_radius=8,
             ),
         ]),
         padding=10,
         border=ft.border.all(1, ft.colors.GREEN_100),
         border_radius=10,
         bgcolor=ft.colors.GREEN_50,
-        height=100,  # Altura inicial
     )
 
     # Atualiza a seção de processos em execução
