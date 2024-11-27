@@ -355,76 +355,93 @@ def create_whitelist_dialog(page: ft.Page, whitelist_manager, analyzer):
         margin=ft.margin.only(bottom=10)
     )
 
-    # Seção de informações mais compacta
+    # Container principal ajustado para layout horizontal
+    main_content = ft.Container(
+        content=ft.Row(
+            [
+                # Coluna da esquerda - Processos Protegidos
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon(ft.icons.SHIELD_MOON_ROUNDED, color=ft.colors.GREEN, size=20),
+                            ft.Text("Processos Protegidos", size=14, weight="bold", color=ft.colors.GREEN),
+                        ]),
+                        ft.Container(
+                            content=process_list,
+                            padding=5,
+                            height=450,  # Aumentada a altura
+                            width=340,   # Largura fixa
+                            border=ft.border.all(1, ft.colors.GREEN_50),
+                            border_radius=8,
+                        ),
+                    ]),
+                    padding=10,
+                    border=ft.border.all(1, ft.colors.GREEN_100),
+                    border_radius=10,
+                    bgcolor=ft.colors.GREEN_50,
+                    expand=True,  # Permite expansão horizontal
+                ),
+                
+                # Separador vertical
+                ft.VerticalDivider(
+                    width=1,
+                    color=ft.colors.BLUE_100,
+                ),
+                
+                # Coluna da direita - Processos em Execução
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon(ft.icons.APPS_ROUNDED, color=ft.colors.BLUE, size=20),
+                            ft.Text("Processos em Execução", size=14, weight="bold", color=ft.colors.BLUE),
+                            process_counter,
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        search_input,
+                        ft.Container(
+                            content=running_processes_list,
+                            padding=5,
+                            height=450,  # Aumentada a altura
+                            width=340,   # Largura fixa
+                            border=ft.border.all(1, ft.colors.BLUE_50),
+                            border_radius=8,
+                        ),
+                    ]),
+                    padding=10,
+                    border=ft.border.all(1, ft.colors.BLUE_100),
+                    border_radius=10,
+                    bgcolor=ft.colors.BLUE_50,
+                    expand=True,  # Permite expansão horizontal
+                ),
+            ],
+            spacing=20,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        width=750,  # Aumentada a largura total
+        height=550, # Aumentada a altura total
+        padding=10,
+    )
+
+    # Ajuste no título do diálogo
     info_section = ft.Container(
         content=ft.Column([
-            ft.Text(
-                "Gerenciamento de Processos",
-                size=20,  # Reduzido o tamanho
-                weight="bold",
-                color=ft.colors.BLUE_900
-            ),
+            ft.Row([
+                ft.Icon(ft.icons.SHIELD, color=ft.colors.BLUE_900, size=24),
+                ft.Text(
+                    "Gerenciamento de Processos",
+                    size=20,
+                    weight="bold",
+                    color=ft.colors.BLUE_900
+                ),
+            ], alignment=ft.MainAxisAlignment.CENTER),
             ft.Text(
                 "Proteja processos importantes do sistema contra o encerramento automático",
-                size=12,  # Reduzido o tamanho
-                color=ft.colors.GREY_700
+                size=12,
+                color=ft.colors.GREY_700,
+                text_align=ft.TextAlign.CENTER,
             ),
             ft.Divider(height=1, color=ft.colors.BLUE_100),
         ]),
-        margin=ft.margin.only(bottom=10)  # Reduzido o margin
-    )
-
-    # Seção de whitelist com altura dinâmica e scroll
-    whitelist_section = ft.Container(
-        content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.icons.SHIELD_MOON_ROUNDED, color=ft.colors.GREEN, size=20),
-                ft.Text("Processos Protegidos", size=14, weight="bold", color=ft.colors.GREEN),
-            ]),
-            ft.Container(
-                content=process_list,
-                padding=5,
-                height=200,
-                border=ft.border.all(1, ft.colors.GREEN_50),
-                border_radius=8,
-            ),
-        ]),
-        padding=10,
-        border=ft.border.all(1, ft.colors.GREEN_100),
-        border_radius=10,
-        bgcolor=ft.colors.GREEN_50,
-    )
-
-    # Atualiza a seção de processos em execução
-    running_section = ft.Container(
-        content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.icons.APPS_ROUNDED, color=ft.colors.BLUE, size=20),
-                ft.Text("Processos em Execução", size=14, weight="bold", color=ft.colors.BLUE),
-                process_counter,
-            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            search_input,
-            running_processes_list,
-        ]),
-        padding=10,
-        border=ft.border.all(1, ft.colors.BLUE_100),
-        border_radius=10,
-        bgcolor=ft.colors.BLUE_50,
-    )
-
-    # Container principal ajustado
-    main_content = ft.Container(
-        content=ft.Column(
-            [
-                whitelist_section,
-                ft.Container(height=10),
-                running_section,
-            ],
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        width=700,
-        height=600,  # Aumentada um pouco a altura para acomodar o conteúdo
-        padding=10,
+        margin=ft.margin.only(bottom=10)
     )
 
     dlg = ft.AlertDialog(

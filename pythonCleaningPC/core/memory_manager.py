@@ -1,6 +1,7 @@
 import psutil
 import ctypes
 from datetime import datetime
+import os
 
 class MemoryManager:
     def __init__(self):
@@ -38,9 +39,9 @@ class MemoryManager:
         
         return sorted(process_memory, key=lambda x: x['memory_mb'], reverse=True)
 
-    def optimize_memory(self):
-        """Otimiza o uso de memória"""
-        # Windows: Chama EmptyWorkingSet para liberar memória
+    def clean_memory(self):
+        """Libera memória RAM não utilizada"""
+        # Em sistemas Windows, podemos usar EmptyWorkingSet para liberar memória
         if hasattr(ctypes.windll, 'psapi'):
             clear_count = 0
             for proc in psutil.process_iter(['pid']):
@@ -52,8 +53,22 @@ class MemoryManager:
                         clear_count += 1
                 except:
                     continue
-            return clear_count
-        return 0
+            return f"Memória limpa: {clear_count} processos otimizados."
+        return "Limpeza de memória não suportada neste sistema."
+
+    def optimize_memory(self):
+        """Otimiza o uso de memória RAM"""
+        # Tenta liberar caches e buffers, se possível
+        try:
+            # Em sistemas Linux, podemos tentar liberar caches usando o comando 'sync' e 'echo 3 > /proc/sys/vm/drop_caches'
+            if os.name != 'nt':
+                os.system('sync; echo 3 > /proc/sys/vm/drop_caches')
+                return "Otimização de memória concluída: caches liberados."
+            else:
+                # Em sistemas Windows, podemos tentar liberar memória de trabalho
+                return self.clean_memory()
+        except Exception as e:
+            return f"Erro durante a otimização de memória: {e}"
 
     def get_memory_stats(self):
         """Retorna estatísticas de memória formatadas"""
