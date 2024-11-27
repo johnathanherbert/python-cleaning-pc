@@ -6,6 +6,21 @@ from core.memory_manager import MemoryManager
 from ui.components import create_result_card, show_details_dialog, create_whitelist_dialog
 from ui.memory_view import create_memory_view
 
+# Definição de um tema consistente
+THEME = {
+    'primary': ft.colors.BLUE_700,
+    'secondary': ft.colors.GREEN_600,
+    'background': ft.colors.WHITE,
+    'surface': ft.colors.GREY_50,
+    'error': ft.colors.RED_600,
+    'text': {
+        'primary': ft.colors.GREY_900,
+        'secondary': ft.colors.GREY_700,
+        'hint': ft.colors.GREY_500
+    },
+    'border': ft.colors.GREY_200
+}
+
 def CleanerApp(page: ft.Page):
     # Configurações da página
     page.update()
@@ -14,11 +29,28 @@ def CleanerApp(page: ft.Page):
     cleaner = SystemCleaner()
     memory_manager = MemoryManager()
     
-    # Estilo consistente para textos
-    title_style = {"size": 22, "weight": "bold", "color": ft.colors.BLUE_800}
-    subtitle_style = {"size": 18, "weight": "bold", "color": ft.colors.GREY_600}
-    text_style = {"size": 16, "color": ft.colors.GREY_700}
-    
+    # Estilos consistentes
+    title_style = {
+        "size": 24,
+        "weight": "bold",
+        "color": THEME['primary']
+    }
+
+    subtitle_style = {
+        "size": 16,
+        "weight": "w500",
+        "color": THEME['text']['secondary']
+    }
+
+    # Definição do estilo do botão
+    button_style = {
+        "style": ft.ButtonStyle(
+            color=ft.colors.WHITE,
+            bgcolor=THEME['primary'],
+            shape=ft.RoundedRectangleBorder(radius=8),
+        )
+    }
+
     status = ft.Text(
         "Aguardando ação...", 
         **subtitle_style,
@@ -27,13 +59,13 @@ def CleanerApp(page: ft.Page):
     progress_bar = ft.ProgressBar(
         width=300, 
         value=0.0, 
-        color=ft.colors.GREEN_400,
-        bgcolor=ft.colors.GREEN_100,
+        color=THEME['secondary'],
+        bgcolor=THEME['surface'],
         visible=False  # Inicialmente invisível
     )
     
     progress_ring = ft.ProgressRing(
-        color=ft.colors.GREEN_400,
+        color=THEME['secondary'],
         width=50,
         height=50,
         visible=False  # Inicialmente invisível
@@ -150,39 +182,39 @@ def CleanerApp(page: ft.Page):
         asyncio.run(start_cleaning(page))
     
     def handle_whitelist_click(e):
-        dlg = create_whitelist_dialog(page, analyzer.whitelist_manager, analyzer)
+        dlg = create_whitelist_dialog(page, cleaner.whitelist_manager, analyzer)
         page.dialog = dlg
         dlg.open = True
         page.update()
     
-    # Estilo comum para botões
-    button_style = {
-        "style": ft.ButtonStyle(
-            bgcolor=ft.colors.BLUE_500,
-            color=ft.colors.WHITE,
-            shape=ft.RoundedRectangleBorder(radius=8),
-        )
-    }
-    
+    # Criação dos botões
     analyze_button = ft.ElevatedButton(
         "Analisar",
-        on_click=handle_analyze_click,
         icon=ft.icons.SEARCH,
-        **button_style
+        on_click=handle_analyze_click,
+        style=ft.ButtonStyle(
+            color=ft.colors.WHITE,
+            bgcolor=THEME['primary'],
+            shape=ft.RoundedRectangleBorder(radius=8),
+        )
     )
-    
+
     start_button = ft.ElevatedButton(
-        "Limpar",
-        on_click=handle_clean_click,
+        "Iniciar Limpeza",
         icon=ft.icons.CLEANING_SERVICES,
+        on_click=handle_clean_click,
         **button_style
     )
-    
+
     whitelist_button = ft.ElevatedButton(
         "Whitelist",
+        icon=ft.icons.SHIELD,
         on_click=handle_whitelist_click,
-        icon=ft.icons.LOCK,
-        **button_style
+        style=ft.ButtonStyle(
+            color=ft.colors.WHITE,
+            bgcolor=THEME['primary'],
+            shape=ft.RoundedRectangleBorder(radius=8),
+        )
     )
     
     result_cards = ft.Row(
@@ -204,7 +236,7 @@ def CleanerApp(page: ft.Page):
                     ft.Container(
                         content=ft.Column([
                             ft.Text("Limpeza do Sistema", **title_style),
-                            ft.Divider(height=1, color=ft.colors.BLUE_100),
+                            ft.Divider(height=1, color=THEME['border']),
                             status,
                             ft.Row(
                                 [progress_ring, progress_bar], 
@@ -221,9 +253,9 @@ def CleanerApp(page: ft.Page):
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=30,
-                    border=ft.border.all(1, ft.colors.GREY_300),
+                    border=ft.border.all(1, THEME['border']),
                     border_radius=10,
-                    bgcolor=ft.colors.WHITE,
+                    bgcolor=THEME['surface'],
                     shadow=ft.BoxShadow(
                         spread_radius=1,
                         blur_radius=15,
@@ -249,5 +281,5 @@ def CleanerApp(page: ft.Page):
     return ft.Container(
         content=tabs,
         padding=20,
-        bgcolor=ft.colors.WHITE,
+        bgcolor=THEME['background'],
     )
