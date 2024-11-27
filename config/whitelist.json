@@ -1,0 +1,24 @@
+{
+    "processes": [
+        "explorer.exe",
+        "services.exe",
+        "dwm.exe",
+        "chrome.exe",
+        "msedge.exe",
+        "System",
+        "powershell.exe",
+        "fontdrvhost.exe",
+        "Discord.exe",
+        "Cursor.exe",
+        "csrss.exe",
+        "python.exe",
+        "wininit.exe",
+        "winlogon.exe",
+        "lsass.exe",
+        "flet.exe",
+        "svchost.exe",
+        "Registry",
+        "firefox.exe",
+        "smss.exe"
+    ]
+}
