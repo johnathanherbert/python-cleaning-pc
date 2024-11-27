@@ -1,7 +1,94 @@
 import flet as ft
 from datetime import datetime
+import asyncio
 
 def create_memory_view(page: ft.Page, memory_manager):
+    # Estilo consistente para textos
+    title_style = {"size": 22, "weight": "bold", "color": ft.colors.BLUE_800}
+    subtitle_style = {"size": 18, "weight": "bold", "color": ft.colors.GREY_600}
+    text_style = {"size": 16, "color": ft.colors.GREY_700}
+
+    # Inicializa os controles
+    memory_stats = ft.Column(controls=[], spacing=10)
+    process_list = ft.Column(controls=[], spacing=5)
+
+    # Estilo comum para botões
+    button_style = ft.ButtonStyle(
+        color=ft.colors.WHITE,
+        bgcolor=ft.colors.GREEN_400,
+        shape=ft.RoundedRectangleBorder(radius=8),
+    )
+
+    def handle_clean_memory(e):
+        async def do_clean():
+            try:
+                status_text.value = "Limpando memória RAM..."
+                page.update()
+                
+                result = await asyncio.to_thread(memory_manager.clean_memory)
+                
+                # Atualiza as informações após a limpeza
+                update_memory_info()
+                update_process_list()
+                
+                page.show_snack_bar(ft.SnackBar(
+                    content=ft.Text(result),
+                    action="OK"
+                ))
+                status_text.value = "Memória RAM limpa com sucesso!"
+            except Exception as ex:
+                status_text.value = f"Erro ao limpar memória: {str(ex)}"
+            finally:
+                page.update()
+        
+        asyncio.run(do_clean())
+
+    def handle_optimize_memory(e):
+        async def do_optimize():
+            try:
+                status_text.value = "Otimizando memória RAM..."
+                page.update()
+                
+                result = await asyncio.to_thread(memory_manager.optimize_memory)
+                
+                # Atualiza as informações após a otimização
+                update_memory_info()
+                update_process_list()
+                
+                page.show_snack_bar(ft.SnackBar(
+                    content=ft.Text(result),
+                    action="OK"
+                ))
+                status_text.value = "Memória RAM otimizada com sucesso!"
+            except Exception as ex:
+                status_text.value = f"Erro ao otimizar memória: {str(ex)}"
+            finally:
+                page.update()
+        
+        asyncio.run(do_optimize())
+
+    # Botões de ação
+    clean_button = ft.ElevatedButton(
+        "Limpar Memória",
+        icon=ft.icons.CLEANING_SERVICES,
+        on_click=handle_clean_memory,  # Usando a função handler
+        style=button_style
+    )
+
+    optimize_button = ft.ElevatedButton(
+        "Otimizar Memória",
+        icon=ft.icons.MEMORY,
+        on_click=handle_optimize_memory,  # Usando a função handler
+        style=button_style
+    )
+
+    # Status text
+    status_text = ft.Text(
+        "Aguardando ação...",
+        color=ft.colors.GREY_700,
+        size=14,
+    )
+
     def update_memory_info():
         stats = memory_manager.get_memory_stats()
         memory_stats.controls = [
@@ -22,12 +109,12 @@ def create_memory_view(page: ft.Page, memory_manager):
                     ft.Text(f"Uso de Memória: {stats['percent']}", size=16, weight="bold", color=ft.colors.RED_400),
                 ], spacing=10),
                 padding=20,
-                border=ft.border.all(1, ft.colors.BLUE_100),
-                border_radius=10,
-                bgcolor=ft.colors.BLUE_50,
+                border=ft.border.all(1, ft.colors.GREY_200),
+                border_radius=12,
+                bgcolor=ft.colors.GREY_50,
                 shadow=ft.BoxShadow(
                     spread_radius=1,
-                    blur_radius=10,
+                    blur_radius=15,
                     color=ft.colors.BLACK12,
                     offset=ft.Offset(2, 2),
                 )
@@ -47,84 +134,37 @@ def create_memory_view(page: ft.Page, memory_manager):
                         size=12
                     ),
                 ),
-                border=ft.border.all(1, ft.colors.BLUE_100),
+                border=ft.border.all(1, ft.colors.GREY_300),
                 border_radius=8,
                 margin=5,
             )
-            for proc in process_memory
+            for proc in process_memory[:10]  # Limita a 10 processos
         ]
         page.update()
 
-    memory_stats = ft.Column(spacing=10)
-    process_list = ft.Column(
-        spacing=5,
-        scroll=ft.ScrollMode.ALWAYS,
-        height=400,
-    )
-
-    # Botões de ação
-    action_buttons = ft.Row(
-        [
-            ft.ElevatedButton(
-                "Atualizar",
-                on_click=lambda _: (update_memory_info(), update_process_list()),
-                icon=ft.icons.REFRESH,
-                style=ft.ButtonStyle(
-                    bgcolor=ft.colors.BLUE_500,
-                    color=ft.colors.WHITE,
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                )
-            ),
-            ft.ElevatedButton(
-                "Limpar Memória",
-                on_click=lambda _: (
-                    page.show_snack_bar(ft.SnackBar(
-                        content=ft.Text(memory_manager.clean_memory()),
-                        action="OK"
-                    )),
-                    update_memory_info(),  # Atualiza as estatísticas
-                    update_process_list()  # Atualiza a lista de processos
-                ),
-                icon=ft.icons.CLEANING_SERVICES,
-                style=ft.ButtonStyle(
-                    bgcolor=ft.colors.GREEN_500,
-                    color=ft.colors.WHITE,
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                )
-            ),
-            ft.ElevatedButton(
-                "Otimizar Memória",
-                on_click=lambda _: (
-                    page.show_snack_bar(ft.SnackBar(
-                        content=ft.Text(memory_manager.optimize_memory()),
-                        action="OK"
-                    )),
-                    update_memory_info(),  # Atualiza as estatísticas
-                    update_process_list()  # Atualiza a lista de processos
-                ),
-                icon=ft.icons.TUNE,
-                style=ft.ButtonStyle(
-                    bgcolor=ft.colors.ORANGE_500,
-                    color=ft.colors.WHITE,
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                )
-            ),
-        ],
-        spacing=10,
-        alignment=ft.MainAxisAlignment.CENTER
+    # Botão de atualizar
+    refresh_button = ft.ElevatedButton(
+        "Atualizar",
+        icon=ft.icons.REFRESH,
+        on_click=lambda _: (update_memory_info(), update_process_list()),
+        style=button_style,
     )
 
     view = ft.Column([
         ft.Container(
             content=ft.Column([
-                ft.Text("Visão Geral da Memória", size=28, weight="bold", color=ft.colors.BLUE_900),
+                ft.Row([
+                    ft.Text("Visão Geral da Memória", **title_style),
+                    ft.Row([clean_button, optimize_button], spacing=10),
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Divider(height=1, color=ft.colors.BLUE_100),
+                status_text,
                 memory_stats,
             ], spacing=20),
             padding=20,
-            border=ft.border.all(1, ft.colors.BLUE_100),
-            border_radius=10,
-            bgcolor=ft.colors.WHITE,
+            border=ft.border.all(1, ft.colors.GREY_200),
+            border_radius=12,
+            bgcolor=ft.colors.GREY_50,
             shadow=ft.BoxShadow(
                 spread_radius=1,
                 blur_radius=15,
@@ -132,24 +172,24 @@ def create_memory_view(page: ft.Page, memory_manager):
                 offset=ft.Offset(2, 2),
             )
         ),
-        action_buttons,  # Adiciona os botões de ação acima da tabela
         ft.Container(
             content=ft.Column([
-                ft.Text("Processos com maior consumo de memória:", 
-                       size=20, 
-                       weight="bold", 
-                       color=ft.colors.BLUE_900
-                ),
+                ft.Text("Processos com maior consumo de memória:", **title_style),
+                ft.Divider(height=1, color=ft.colors.BLUE_100),
                 ft.Container(
-                    content=process_list,
+                    content=ft.Column(
+                        controls=[process_list],
+                        scroll=ft.ScrollMode.ALWAYS,
+                    ),
                     height=400,
-                    border=ft.border.all(1, ft.colors.BLUE_100),
+                    border=ft.border.all(1, ft.colors.GREY_300),
                     border_radius=10,
                     padding=10,
+                    bgcolor=ft.colors.WHITE,
                 ),
             ], spacing=10),
             padding=20,
-            border=ft.border.all(1, ft.colors.BLUE_100),
+            border=ft.border.all(1, ft.colors.GREY_300),
             border_radius=10,
             bgcolor=ft.colors.WHITE,
             shadow=ft.BoxShadow(
@@ -159,7 +199,7 @@ def create_memory_view(page: ft.Page, memory_manager):
                 offset=ft.Offset(2, 2),
             )
         ),
-    ], spacing=20)
+    ], spacing=30)
 
     # Atualização inicial
     update_memory_info()

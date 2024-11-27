@@ -25,14 +25,42 @@ class AsyncTimer:
         if self._task:
             self._task.cancel()
 
-def create_result_card(task_name, result, task_icon, task_details=None, on_details_click=None):
+def create_result_card(task_name, result, task_icon, task_details=None, on_details_click=None, width=200, loading=False):
     """
     Cria um card de resultado para exibir informações de uma tarefa
     """
+    # Determina a cor baseada no resultado
+    def get_status_color(value):
+        if isinstance(value, (int, float)):
+            if value > 1000:  # Muito alto
+                return ft.colors.RED_400
+            elif value > 500:  # Médio
+                return ft.colors.ORANGE_400
+            else:  # Baixo
+                return ft.colors.GREEN_400
+        return ft.colors.BLUE_400
+
+    status_color = get_status_color(result)
+    
     card_content = [
-        ft.Icon(task_icon, size=30, color=ft.colors.BLUE_500),
+        ft.Icon(task_icon, size=30, color=status_color),
         ft.Text(task_name, size=16, weight="bold", color=ft.colors.BLUE_900),
-        ft.Text(str(result), size=14, color=ft.colors.BLACK),
+        ft.Row([
+            ft.ProgressRing(color=status_color, width=16, height=16, visible=loading),
+            ft.Text(str(result), size=14, color=status_color, weight="bold"),
+        ], alignment=ft.MainAxisAlignment.CENTER),
+        ft.Container(
+            content=ft.Text(
+                "Alto" if status_color == ft.colors.RED_400 else
+                "Médio" if status_color == ft.colors.ORANGE_400 else
+                "Baixo",
+                size=12,
+                color=status_color
+            ),
+            padding=5,
+            border_radius=15,
+            bgcolor=ft.colors.with_opacity(0.1, status_color),
+        )
     ]
     
     if task_details and on_details_click:
@@ -41,6 +69,9 @@ def create_result_card(task_name, result, task_icon, task_details=None, on_detai
                 "Ver Detalhes",
                 on_click=on_details_click,
                 icon=ft.icons.INFO_OUTLINE,
+                style=ft.ButtonStyle(
+                    color=status_color,
+                ),
             )
         )
     
@@ -50,9 +81,9 @@ def create_result_card(task_name, result, task_icon, task_details=None, on_detai
             spacing=10,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
-        width=200,
+        width=width,
         padding=20,
-        border=ft.border.all(1, ft.colors.BLUE_100),
+        border=ft.border.all(1, status_color),
         border_radius=10,
         bgcolor=ft.colors.WHITE,
         shadow=ft.BoxShadow(
@@ -74,126 +105,56 @@ def show_details_dialog(page: ft.Page, details, title, analyzer):
             analyzer.whitelist_manager.add_process(process_name)
         else:
             analyzer.whitelist_manager.remove_process(process_name)
-        page.update()
 
-    detail_items = []
-    if "processos" in title.lower():
-        detail_items.append(
+    content = ft.Column(
+        [
+            ft.Text(
+                "Detalhes da Análise",
+                size=20,
+                weight="bold",
+                color=ft.colors.BLUE_900
+            ),
+            ft.Divider(height=1, color=ft.colors.BLUE_100),
             ft.Container(
                 content=ft.Column(
-                    controls=[
-                        ft.Text(
-                            "✅ Marque os processos que você quer MANTER em execução",
-                            size=14,
-                            weight="bold",
-                            color=ft.colors.GREEN,
-                        ),
-                        ft.Text(
-                            "❌ Processos não marcados serão ENCERRADOS durante a limpeza",
-                            size=14,
-                            color=ft.colors.RED,
-                        ),
-                        ft.Divider(),
+                    [
+                        ft.ListTile(
+                            leading=ft.Icon(
+                                ft.icons.INFO_OUTLINE,
+                                color=ft.colors.BLUE_400
+                            ),
+                            title=ft.Text(detail),
+                            trailing=ft.Checkbox(
+                                data=detail.split()[0] if " " in detail else detail,
+                                on_change=on_checkbox_change,
+                                value=analyzer.whitelist_manager.is_whitelisted(
+                                    detail.split()[0] if " " in detail else detail
+                                )
+                            ) if "PID" in detail else None
+                        )
+                        for detail in details
                     ],
+                    scroll=ft.ScrollMode.AUTO,
+                    height=300,
                 ),
+                border=ft.border.all(1, ft.colors.BLUE_100),
+                border_radius=10,
                 padding=10,
-            )
-        )
-
-        for detail in details:
-            try:
-                process_name = detail.split(" (PID:")[0].strip()
-                is_whitelisted = analyzer.whitelist_manager.is_whitelisted(process_name)
-                is_default = analyzer.whitelist_manager.is_default_process(process_name)
-                
-                detail_items.append(
-                    ft.Container(
-                        content=ft.Row(
-                            controls=[
-                                ft.Checkbox(
-                                    value=is_whitelisted,
-                                    data=process_name,
-                                    on_change=on_checkbox_change,
-                                    disabled=is_default,
-                                ),
-                                ft.Icon(
-                                    ft.icons.LOCK if is_default else ft.icons.APPS,
-                                    color=ft.colors.GREY_400 if is_default else ft.colors.BLUE,
-                                    size=16,
-                                ),
-                                ft.Text(
-                                    detail,
-                                    size=12,
-                                    color=ft.colors.GREY_400 if is_default else None,
-                                ),
-                                ft.Text(
-                                    " (Processo do Sistema)" if is_default else "",
-                                    size=10,
-                                    italic=True,
-                                    color=ft.colors.GREY_400,
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.START,
-                        ),
-                        padding=ft.padding.only(bottom=5),
-                    )
-                )
-            except Exception as e:
-                print(f"Erro ao processar processo {detail}: {e}")
-    else:
-        detail_items = [ft.Text(detail, size=12) for detail in details]
+            ),
+        ],
+        spacing=20,
+    )
 
     dlg = ft.AlertDialog(
-        modal=True,
-        title=ft.Text(f"Detalhes - {title}", size=20, weight="bold"),
-        content=ft.Container(
-            content=ft.Column(
-                [
-                    ft.Container(
-                        content=ft.ListView(
-                            controls=detail_items,
-                            spacing=2,
-                            padding=10,
-                        ),
-                        height=400,
-                        width=600,
-                        border=ft.border.all(1, ft.colors.OUTLINE),
-                        border_radius=10,
-                    ),
-                    ft.Container(
-                        content=ft.Column(
-                            controls=[
-                                ft.Text(
-                                    f"Total de itens: {len(details)}", 
-                                    size=14, 
-                                    weight="bold",
-                                    color=ft.colors.BLUE
-                                ),
-                                ft.Row(
-                                    controls=[
-                                        ft.Icon(ft.icons.LOCK, color=ft.colors.GREY_400, size=16),
-                                        ft.Text(
-                                            "Processos do sistema (não podem ser encerrados)",
-                                            size=12,
-                                            color=ft.colors.GREY_400,
-                                        ),
-                                    ],
-                                ) if "processos" in title.lower() else ft.Container(),
-                            ],
-                        ),
-                        padding=10,
-                    ),
-                ],
-            ),
-            padding=20,
-        ),
+        title=ft.Text(title),
+        content=content,
         actions=[
             ft.TextButton("Fechar", on_click=close_dlg),
         ],
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    page.overlay.append(dlg)
+    page.dialog = dlg
     dlg.open = True
     page.update()
 
@@ -436,7 +397,7 @@ def create_whitelist_dialog(page: ft.Page, whitelist_manager, analyzer):
             ft.Text(
                 "Proteja processos importantes do sistema contra o encerramento automático",
                 size=12,
-                color=ft.colors.GREY_700,
+                color=ft.colors.BLUE_700,
                 text_align=ft.TextAlign.CENTER,
             ),
             ft.Divider(height=1, color=ft.colors.BLUE_100),

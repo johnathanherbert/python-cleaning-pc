@@ -8,9 +8,6 @@ from ui.memory_view import create_memory_view
 
 def CleanerApp(page: ft.Page):
     # Configurações da página
-    page.theme_mode = ft.ThemeMode.LIGHT  # Força o modo claro
-    page.bgcolor = ft.colors.WHITE  # Define o fundo branco
-    page.window.bgcolor = ft.colors.WHITE  # Define o fundo da janela
     page.update()
 
     analyzer = SystemAnalyzer()
@@ -18,9 +15,9 @@ def CleanerApp(page: ft.Page):
     memory_manager = MemoryManager()
     
     # Estilo consistente para textos
-    title_style = {"size": 20, "weight": "bold", "color": ft.colors.BLUE_900}
-    subtitle_style = {"size": 16, "weight": "bold", "color": ft.colors.BLUE_700}
-    text_style = {"size": 14, "color": ft.colors.BLACK}
+    title_style = {"size": 22, "weight": "bold", "color": ft.colors.BLUE_800}
+    subtitle_style = {"size": 18, "weight": "bold", "color": ft.colors.GREY_600}
+    text_style = {"size": 16, "color": ft.colors.GREY_700}
     
     status = ft.Text(
         "Aguardando ação...", 
@@ -30,13 +27,125 @@ def CleanerApp(page: ft.Page):
     progress_bar = ft.ProgressBar(
         width=300, 
         value=0.0, 
-        color=ft.colors.BLUE_400,
-        bgcolor=ft.colors.BLUE_50,
+        color=ft.colors.GREEN_400,
+        bgcolor=ft.colors.GREEN_100,
+        visible=False  # Inicialmente invisível
     )
     
-    def handle_analyze_click(e):
-        asyncio.run(start_analysis(page))
-        
+    progress_ring = ft.ProgressRing(
+        color=ft.colors.GREEN_400,
+        width=50,
+        height=50,
+        visible=False  # Inicialmente invisível
+    )
+    
+    async def handle_analyze_click(e):
+        asyncio.create_task(analyze_system(e))
+
+    async def analyze_system(e):
+        # Mostra os indicadores de progresso
+        progress_ring.visible = True
+        progress_bar.visible = True
+        status.value = "Analisando sistema..."
+        page.update()
+
+        try:
+            # Ativa os loadings nos cards
+            for card in result_cards.controls:
+                card.content.controls[2].controls[0].visible = True
+            page.update()
+
+            # Análise dos arquivos temporários
+            progress_bar.value = 0.3
+            page.update()
+            temp_files = await asyncio.to_thread(analyzer.analyze_temp_files)
+            result_cards.controls[0].content.controls[2].controls[1].value = f"{temp_files} arquivos"
+            result_cards.controls[0].content.controls[2].controls[0].visible = False
+            page.update()
+            
+            # Análise dos processos
+            progress_bar.value = 0.6
+            page.update()
+            processes = await asyncio.to_thread(analyzer.analyze_unnecessary_processes)
+            result_cards.controls[1].content.controls[2].controls[1].value = f"{processes} processos"
+            result_cards.controls[1].content.controls[2].controls[0].visible = False
+            page.update()
+            
+            # Análise do cache
+            progress_bar.value = 0.9
+            page.update()
+            cache = await asyncio.to_thread(analyzer.analyze_cache)
+            result_cards.controls[2].content.controls[2].controls[1].value = f"{cache} MB"
+            result_cards.controls[2].content.controls[2].controls[0].visible = False
+            page.update()
+            
+            # Finaliza a análise
+            progress_bar.value = 1.0
+            status.value = "Análise concluída!"
+            page.update()
+            
+        except Exception as e:
+            status.value = f"Erro durante a análise: {str(e)}"
+        finally:
+            progress_ring.visible = False
+            progress_bar.visible = False
+            progress_bar.value = 0
+            page.update()
+    
+    async def start_cleaning(page):
+        try:
+            # Mostra os indicadores de progresso
+            progress_ring.visible = True
+            progress_bar.visible = True
+            status.value = "Iniciando limpeza do sistema..."
+            page.update()
+
+            # Limpa arquivos temporários
+            progress_bar.value = 0.3
+            status.value = "Limpando arquivos temporários..."
+            page.update()
+            temp_files = await asyncio.to_thread(cleaner.clean_temp_files)
+            result_cards.controls[0].content.controls[2].controls[1].value = f"{temp_files} arquivos removidos"
+            page.update()
+            
+            # Encerra processos desnecessários
+            progress_bar.value = 0.6
+            status.value = "Encerrando processos desnecessários..."
+            page.update()
+            processes = await asyncio.to_thread(cleaner.terminate_unnecessary_processes)
+            result_cards.controls[1].content.controls[2].controls[1].value = f"{processes} processos encerrados"
+            page.update()
+            
+            # Limpa cache
+            progress_bar.value = 0.9
+            status.value = "Limpando cache..."
+            page.update()
+            cache = await asyncio.to_thread(cleaner.clean_cache)
+            result_cards.controls[2].content.controls[2].controls[1].value = f"{cache} MB liberados"
+            page.update()
+            
+            # Finaliza a limpeza
+            progress_bar.value = 1.0
+            status.value = "Limpeza concluída!"
+            page.show_snack_bar(ft.SnackBar(
+                content=ft.Text("Limpeza do sistema concluída com sucesso!"),
+                action="OK"
+            ))
+            
+        except Exception as e:
+            status.value = f"Erro durante a limpeza: {str(e)}"
+            page.show_snack_bar(ft.SnackBar(
+                content=ft.Text(f"Erro durante a limpeza: {str(e)}"),
+                action="OK"
+            ))
+            
+        finally:
+            # Esconde os indicadores de progresso
+            progress_ring.visible = False
+            progress_bar.visible = False
+            progress_bar.value = 0
+            page.update()
+
     def handle_clean_click(e):
         asyncio.run(start_cleaning(page))
     
@@ -49,140 +158,44 @@ def CleanerApp(page: ft.Page):
     # Estilo comum para botões
     button_style = {
         "style": ft.ButtonStyle(
+            bgcolor=ft.colors.BLUE_500,
             color=ft.colors.WHITE,
             shape=ft.RoundedRectangleBorder(radius=8),
-            padding=20,
         )
     }
     
     analyze_button = ft.ElevatedButton(
-        "Analisar Sistema",
+        "Analisar",
         on_click=handle_analyze_click,
         icon=ft.icons.SEARCH,
-        style=ft.ButtonStyle(
-            bgcolor=ft.colors.BLUE_500,
-            color=ft.colors.WHITE,
-            shape=ft.RoundedRectangleBorder(radius=8),
-            padding=20,
-        )
+        **button_style
     )
     
     start_button = ft.ElevatedButton(
-        "Iniciar Limpeza",
+        "Limpar",
         on_click=handle_clean_click,
         icon=ft.icons.CLEANING_SERVICES,
-        disabled=True,
-        style=ft.ButtonStyle(
-            bgcolor=ft.colors.GREEN_500,
-            color=ft.colors.WHITE,
-            shape=ft.RoundedRectangleBorder(radius=8),
-            padding=20,
-        )
+        **button_style
     )
     
     whitelist_button = ft.ElevatedButton(
-        "Gerenciar Whitelist",
+        "Whitelist",
         on_click=handle_whitelist_click,
-        icon=ft.icons.LIST,
-        style=ft.ButtonStyle(
-            bgcolor=ft.colors.ORANGE_500,
-            color=ft.colors.WHITE,
-            shape=ft.RoundedRectangleBorder(radius=8),
-            padding=20,
-        )
-    )
-
-    async def start_analysis(page: ft.Page):
-        analyze_button.disabled = True
-        result_cards.controls.clear()
-        page.update()
-
-        tasks = [
-            ("Analisando arquivos temporários", analyzer.analyze_temp_files, ft.icons.FILE_PRESENT, analyzer.temp_files_details),
-            ("Analisando processos", analyzer.analyze_unnecessary_processes, ft.icons.MEMORY, analyzer.unnecessary_processes_details),
-            ("Analisando cache", analyzer.analyze_cache, ft.icons.STORAGE, analyzer.cache_details)
-        ]
-
-        total_tasks = len(tasks)
-        for i, (task_name, task_func, task_icon, task_details) in enumerate(tasks):
-            status.value = task_name
-            page.update()
-
-            result = task_func()
-            card = create_result_card(
-                task_name=task_name,
-                result=result,
-                task_icon=task_icon,
-                task_details=task_details,
-                on_details_click=lambda e, details=task_details, title=task_name: show_details_dialog(
-                    page=page,
-                    details=details,
-                    title=title,
-                    analyzer=analyzer
-                )
-            )
-            result_cards.controls.append(card)
-
-            # Atualiza a barra de progresso após cada tarefa
-            progress_bar.value = (i + 1) / total_tasks
-            page.update()
-
-        status.value = "Análise concluída. Pronto para limpeza!"
-        progress_bar.value = 1.0
-        analyze_button.disabled = False
-        start_button.disabled = False
-        page.update()
-
-    async def start_cleaning(page: ft.Page):
-        try:
-            start_button.disabled = True
-            result_cards.controls.clear()
-            page.update()
-
-            tasks = [
-                ("Limpando arquivos temporários", cleaner.clean_temp_files, ft.icons.FILE_PRESENT),
-                ("Limpando cache", cleaner.clean_cache, ft.icons.STORAGE),
-                ("Otimizando cache", cleaner.optimize_cache, ft.icons.STORAGE)
-            ]
-
-            for i, (task_name, task_func, task_icon) in enumerate(tasks):
-                try:
-                    status.value = task_name
-                    progress_bar.value = (i + 1) / len(tasks)
-                    page.update()
-
-                    result = task_func()
-                    card = create_result_card(
-                        task_name=task_name,
-                        result=result,
-                        task_icon=task_icon
-                    )
-                    result_cards.controls.append(card)
-                    page.update()
-                except Exception as e:
-                    print(f"Erro durante a tarefa {task_name}: {e}")
-                    status.value = f"Erro durante {task_name}"
-                    page.update()
-
-            status.value = "Limpeza concluída!"
-            progress_bar.value = 1.0
-        except Exception as e:
-            print(f"Erro durante a limpeza: {e}")
-            status.value = "Erro durante a limpeza"
-        finally:
-            start_button.disabled = False
-            page.update()
-
-    result_cards = ft.Row(
-        spacing=20, 
-        alignment=ft.MainAxisAlignment.CENTER,
-        wrap=True,  # Permite que os cards quebrem linha quando necessário
+        icon=ft.icons.LOCK,
+        **button_style
     )
     
-    # Criar tabs para diferentes funcionalidades
+    result_cards = ft.Row(
+        [
+            create_result_card("Arquivos Temporários", 0, ft.icons.FOLDER_OUTLINED, width=250),
+            create_result_card("Processos Desnecessários", 0, ft.icons.APPS, width=250),
+            create_result_card("Cache", 0, ft.icons.STORAGE_ROUNDED, width=250),
+        ],
+        spacing=10,
+        alignment=ft.MainAxisAlignment.CENTER
+    )
+    
     tabs = ft.Tabs(
-        selected_index=0,
-        animation_duration=300,
         tabs=[
             ft.Tab(
                 text="Limpeza",
@@ -193,7 +206,11 @@ def CleanerApp(page: ft.Page):
                             ft.Text("Limpeza do Sistema", **title_style),
                             ft.Divider(height=1, color=ft.colors.BLUE_100),
                             status,
-                            progress_bar,
+                            ft.Row(
+                                [progress_ring, progress_bar], 
+                                spacing=10, 
+                                alignment=ft.MainAxisAlignment.CENTER
+                            ),
                             ft.Row(
                                 [analyze_button, start_button, whitelist_button], 
                                 spacing=10, 
@@ -204,7 +221,7 @@ def CleanerApp(page: ft.Page):
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=30,
-                    border=ft.border.all(1, ft.colors.BLUE_100),
+                    border=ft.border.all(1, ft.colors.GREY_300),
                     border_radius=10,
                     bgcolor=ft.colors.WHITE,
                     shadow=ft.BoxShadow(

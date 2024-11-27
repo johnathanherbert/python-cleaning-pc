@@ -51,26 +51,29 @@ class SystemCleaner:
         return False
 
     def clean_temp_files(self):
+        print("Iniciando limpeza de arquivos temporários...")
         self.files_removed = 0
-        whitelisted_processes = self.get_running_processes_names()
         
         temp_dirs = [tempfile.gettempdir(), "C:\\Windows\\Temp"] if os.name == "nt" else ["/tmp"]
         for temp_dir in temp_dirs:
+            print(f"Limpando diretório: {temp_dir}")
             if os.path.exists(temp_dir):
                 for file_path in walk_directory(temp_dir):
                     try:
-                        if not self.should_preserve_file(file_path, whitelisted_processes):
+                        if not any(proc in file_path.lower() for proc in self.whitelist_manager.get_processes()):
                             if remove_file(file_path):
+                                print(f"Arquivo removido: {file_path}")
                                 self.files_removed += 1
                     except Exception as e:
-                        print(f"Erro ao limpar arquivo {file_path}: {e}")
+                        print(f"Erro ao remover arquivo {file_path}: {e}")
                         continue
-        
+
+        print(f"Total de arquivos removidos: {self.files_removed}")
         return self.files_removed
 
     def clean_cache(self):
+        print("Iniciando limpeza de cache...")
         cache_cleaned = 0
-        whitelisted_processes = self.get_running_processes_names()
         
         cache_paths = [
             os.path.expanduser("~/.cache"),
@@ -78,38 +81,44 @@ class SystemCleaner:
         ]
         
         for path in cache_paths:
+            print(f"Limpando cache em: {path}")
             if os.path.exists(path):
                 for file_path in walk_directory(path):
                     try:
-                        if not self.should_preserve_file(file_path, whitelisted_processes):
+                        if os.path.exists(file_path):
+                            file_size = os.path.getsize(file_path)
                             if remove_file(file_path):
-                                cache_cleaned += os.path.getsize(file_path)
+                                print(f"Cache removido: {file_path} ({file_size // 1024} KB)")
+                                cache_cleaned += file_size
                     except Exception as e:
                         print(f"Erro ao limpar cache {file_path}: {e}")
                         continue
-                        
-        return cache_cleaned // (1024 * 1024)  # Convert to MB
+
+        total_mb = cache_cleaned // (1024 * 1024)
+        print(f"Total de cache limpo: {total_mb} MB")
+        return total_mb
 
     def terminate_unnecessary_processes(self):
+        print("Iniciando encerramento de processos desnecessários...")
         self.processes_terminated = 0
+        
         for proc in psutil.process_iter(['name', 'pid']):
             try:
                 process_name = proc.info['name']
                 if not self.whitelist_manager.is_whitelisted(process_name):
-                    try:
-                        # Tenta encerrar o processo de forma mais segura
-                        proc.terminate()
-                        # Aguarda até 3 segundos pelo encerramento
-                        proc.wait(timeout=3)
-                        self.processes_terminated += 1
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired) as e:
-                        print(f"Não foi possível encerrar {process_name}: {e}")
-                        continue
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    print(f"Tentando encerrar processo: {process_name}")
+                    proc.terminate()
+                    proc.wait(timeout=3)
+                    print(f"Processo encerrado: {process_name}")
+                    self.processes_terminated += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired) as e:
+                print(f"Não foi possível encerrar {process_name}: {e}")
                 continue
             except Exception as e:
                 print(f"Erro ao processar {process_name}: {e}")
                 continue
+
+        print(f"Total de processos encerrados: {self.processes_terminated}")
         return self.processes_terminated
 
     def optimize_cache(self):

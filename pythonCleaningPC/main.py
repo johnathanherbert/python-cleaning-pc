@@ -5,7 +5,7 @@ def main(page: ft.Page):
     page.title = "Sistema de Limpeza e Otimização"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.theme_mode = ft.ThemeMode.DARK
+    page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 40
 
     page.add(CleanerApp(page))
